@@ -33,6 +33,41 @@ verifyNotEmpty(testCase,strfind(char(source),"真实 MVS SDK 枚举"));
 verifyEmpty(testCase,strfind(char(source),"RGB 后端未接入"));
 end
 
+function testRgbPreviewConfigurationIsExplicit(testCase)
+root = projectRoot();
+cfg = jsondecode(fileread(fullfile(root,"config","default.json")));
+verifyEqual(testCase,double(cfg.camera.rgb.previewWidth),1280);
+verifyEqual(testCase,double(cfg.camera.rgb.previewHeight),720);
+verifyEqual(testCase,double(cfg.camera.rgb.previewFps),25);
+verifyGreaterThanOrEqual(testCase,double(cfg.camera.rgb.readTimeoutMs),10);
+end
+
+function testRgbAdapterUsesConfigurablePreviewAndConnectionProbe(testCase)
+source = string(fileread(fullfile(projectRoot(),"src","matlab","+camera", ...
+    "HikrobotCameraSource.m")));
+verifyNotEmpty(testCase,strfind(char(source),"ReadTimeoutMs"));
+verifyNotEmpty(testCase,strfind(char(source),"PreviewWidth"));
+verifyNotEmpty(testCase,strfind(char(source),"PreviewHeight"));
+verifyNotEmpty(testCase,strfind(char(source),"function tf = isConnected"));
+verifyNotEmpty(testCase,strfind(char(source),'hikrobot_mex("info")'));
+end
+
+function testNativeRgbDistinguishesDisconnectFromTimeout(testCase)
+source = string(fileread(fullfile(projectRoot(),"src","native","src", ...
+    "hikrobot_mex.cpp")));
+verifyNotEmpty(testCase,strfind(char(source),"MV_CC_IsDeviceConnected"));
+verifyNotEmpty(testCase,strfind(char(source),"Hikrobot:Disconnected"));
+verifyNotEmpty(testCase,strfind(char(source),"return mxCreateNumericMatrix(0, 0"));
+end
+
+function testRunUsesRgbPreviewRateAndPreservesExposureConnectionState(testCase)
+source = string(fileread(fullfile(projectRoot(),"src","matlab","+app","run.m")));
+verifyNotEmpty(testCase,strfind(char(source),"rgbRefreshHz"));
+verifyNotEmpty(testCase,strfind(char(source),"cfg.camera.rgb.previewFps"));
+verifyNotEmpty(testCase,strfind(char(source),"RGB已连接；曝光设置失败"));
+verifyNotEmpty(testCase,strfind(char(source),'rgbSrc.isConnected()'));
+end
+
 function root = projectRoot()
 root = fileparts(fileparts(fileparts(mfilename("fullpath"))));
 end
