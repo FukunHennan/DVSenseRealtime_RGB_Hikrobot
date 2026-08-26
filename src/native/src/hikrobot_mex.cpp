@@ -221,8 +221,13 @@ bool copyToRgb(const MV_FRAME_OUT& frame, std::vector<uint8_t>& rgb) {
 mxArray* makePreview(unsigned int timeoutMs, unsigned int outWidth, unsigned int outHeight) {
     requireOpen();
     MV_FRAME_OUT newest{};
-    int code = MV_CC_GetImageBuffer(gHandle, &newest, timeoutMs);
-    if (code != MV_OK) return mxCreateNumericMatrix(0, 0, mxUINT8_CLASS, mxREAL);
+    const int code = MV_CC_GetImageBuffer(gHandle, &newest, timeoutMs);
+    if (code != MV_OK) {
+        if (!MV_CC_IsDeviceConnected(gHandle)) {
+            fail("Hikrobot:Disconnected", "Hikrobot camera disconnected during acquisition.");
+        }
+        return mxCreateNumericMatrix(0, 0, mxUINT8_CLASS, mxREAL);
+    }
 
     for (int i = 0; i < 8; ++i) {
         MV_FRAME_OUT next{};
@@ -280,7 +285,8 @@ void setExposure(double microseconds) {
     if (rangeCode != MV_OK) fail("Hikrobot:Exposure", "Unable to query ExposureTime range.");
     const double clamped = std::max(static_cast<double>(range.fMin),
                                     std::min(static_cast<double>(range.fMax), microseconds));
-    MV_CC_SetEnumValue(gHandle, "ExposureAuto", MV_EXPOSURE_AUTO_MODE_OFF);
+    const int autoCode = MV_CC_SetEnumValue(gHandle, "ExposureAuto", MV_EXPOSURE_AUTO_MODE_OFF);
+    if (autoCode != MV_OK) fail("Hikrobot:Exposure", "Unable to disable automatic exposure.");
     const int code = MV_CC_SetFloatValue(gHandle, "ExposureTime", static_cast<float>(clamped));
     if (code != MV_OK) fail("Hikrobot:Exposure", "Unable to set ExposureTime.");
 }
@@ -323,7 +329,7 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[]) {
         return;
     }
     if (command == "read") {
-        const unsigned int timeoutMs = nrhs >= 2 ? scalarUInt(prhs[1], 5) : 5;
+        const unsigned int timeoutMs = nrhs >= 2 ? scalarUInt(prhs[1], 20) : 20;
         const unsigned int outWidth = nrhs >= 3 ? scalarUInt(prhs[2], 1280) : 1280;
         const unsigned int outHeight = nrhs >= 4 ? scalarUInt(prhs[3], 720) : 720;
         if (nlhs > 0) plhs[0] = makePreview(timeoutMs, outWidth, outHeight);
