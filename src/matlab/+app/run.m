@@ -44,6 +44,16 @@ track = struct("valid",false,"timestampUs",uint64(0), ...
 recognitionEventCount = 0;
 recognitionDiagnostics = localEmptyRecognitionDiagnostics();
 displayRefreshHz = 25;
+if isfield(cfg,"display") && isfield(cfg.display,"refreshHz") && ...
+        isfinite(double(cfg.display.refreshHz)) && double(cfg.display.refreshHz) > 0
+    displayRefreshHz = double(cfg.display.refreshHz);
+end
+rgbRefreshHz = displayRefreshHz;
+if isfield(cfg,"camera") && isfield(cfg.camera,"rgb") && ...
+        isfield(cfg.camera.rgb,"previewFps") && ...
+        isfinite(double(cfg.camera.rgb.previewFps)) && double(cfg.camera.rgb.previewFps) > 0
+    rgbRefreshHz = double(cfg.camera.rgb.previewFps);
+end
 
 while toc(startTime) < cfg.runtime.durationSeconds
     if cfg.display.enabled && ~viewer.isRunning()
@@ -108,6 +118,8 @@ while toc(startTime) < cfg.runtime.durationSeconds
                     end
                     rgbRunning = false;
                     viewer.setRgbRunningState(false);
+                    viewer.setRgbCameraInfo(struct("serial","--","model","--"));
+                    viewer.setRgbExposureState(NaN);
                     viewer.setRgbConnectionStatus("RGB相机已断开","未连接");
                 case "setRgbExposureUs"
                     if ~rgbRunning || isempty(rgbSrc)
@@ -115,6 +127,7 @@ while toc(startTime) < cfg.runtime.durationSeconds
                     end
                     currentExposure = rgbSrc.setExposureUs(command.value);
                     viewer.setRgbExposureState(currentExposure);
+                    viewer.setRgbConnectionStatus("RGB相机已连接，正在实时取流","已连接");
                 case "setROI"
                     cfg=app.applyROICommand(cfg,command);
                     viewer.showROI(cfg.roi.rectangle);
@@ -148,8 +161,21 @@ while toc(startTime) < cfg.runtime.durationSeconds
             end
         catch commandError
             if string(command.type) == "setRgbExposureUs"
-                viewer.setRgbConnectionStatus( ...
-                    "RGB曝光设置失败："+string(commandError.message),"错误");
+                if rgbRunning && ~isempty(rgbSrc) && rgbSrc.isConnected()
+                    viewer.setRgbConnectionStatus( ...
+                        "RGB已连接；曝光设置失败："+string(commandError.message),"已连接");
+                else
+                    try
+                        if ~isempty(rgbSrc), rgbSrc.close(); end
+                    catch
+                    end
+                    rgbRunning = false;
+                    viewer.setRgbRunningState(false);
+                    viewer.setRgbCameraInfo(struct("serial","--","model","--"));
+                    viewer.setRgbExposureState(NaN);
+                    viewer.setRgbConnectionStatus( ...
+                        "RGB连接已丢失："+string(commandError.message),"错误");
+                end
             elseif any(string(command.type) == ["connectRgb","disconnectRgb"])
                 try
                     if ~isempty(rgbSrc), rgbSrc.close(); end
@@ -157,6 +183,8 @@ while toc(startTime) < cfg.runtime.durationSeconds
                 end
                 rgbRunning = false;
                 viewer.setRgbRunningState(false);
+                viewer.setRgbCameraInfo(struct("serial","--","model","--"));
+                viewer.setRgbExposureState(NaN);
                 viewer.setRgbConnectionStatus( ...
                     "RGB命令失败："+string(commandError.message),"错误");
             else
@@ -165,7 +193,7 @@ while toc(startTime) < cfg.runtime.durationSeconds
         end
     end
     if rgbRunning && ~isempty(rgbSrc) && ...
-            cfg.display.enabled && toc(lastRgbDisplay) >= 1/displayRefreshHz
+            cfg.display.enabled && toc(lastRgbDisplay) >= 1/rgbRefreshHz
         try
             rgbFrame = rgbSrc.readDisplayFrame();
             if ~isempty(rgbFrame)
@@ -175,6 +203,8 @@ while toc(startTime) < cfg.runtime.durationSeconds
             try, rgbSrc.close(); catch, end
             rgbRunning = false;
             viewer.setRgbRunningState(false);
+            viewer.setRgbCameraInfo(struct("serial","--","model","--"));
+            viewer.setRgbExposureState(NaN);
             viewer.setRgbConnectionStatus( ...
                 "RGB取流失败："+string(rgbReadError.message),"错误");
         end
