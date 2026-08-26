@@ -23,9 +23,11 @@
     "defaultParameterFile": "${PROJECT_ROOT}/config/dvsense_default_parameters.json"
   },
   "fusion": {
+    "mode": "reused-frame-overlay",
     "rgbFps": 30,
     "outputWidth": 1280,
     "outputHeight": 720,
+    "eventAlpha": 1.0,
     "calibrationEnabled": false,
     "calibrationFile": "${PROJECT_ROOT}/calibration/fusion_result.json"
   },
