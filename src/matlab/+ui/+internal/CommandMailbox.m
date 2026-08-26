@@ -58,6 +58,10 @@ classdef CommandMailbox < handle
             switch type
                 case "setDisplayAccumulationUs"
                     key = "setDisplayAccumulationUs";
+                case "setRgbExposureUs"
+                    key = "setRgbExposureUs";
+                case "setRgbThreshold"
+                    key = "setRgbThreshold";
                 case "setToolParameter"
                     if isfield(command,"tool") && isfield(command,"name")
                         key = "setToolParameter/" + string(command.tool) + ...
