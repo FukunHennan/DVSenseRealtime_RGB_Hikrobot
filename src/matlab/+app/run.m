@@ -11,6 +11,9 @@ tracker = analysis.MotionTracker(cfg.tracking);
 recognitionFilter = analysis.ActivityFilter;
 recorder = analysis.SessionRecorder(cfg);
 viewer = ui.LiveViewer(cfg);
+fusionRenderer = fusion.FusionRenderer(cfg);
+latestDvsFrame = [];
+latestRgbFrame = [];
 recognitionAccumulator = analysis.RecognitionWindow( ...
     cfg.processing.recognitionWindowUs,cfg.processing.recognitionMaxEvents, ...
     localRecognitionMinEvents());
@@ -29,6 +32,7 @@ viewer.setConnectionStatus("未连接相机，可在设备页扫描并连接","�
 viewer.setRunningState(false);
 viewer.setRgbRunningState(false);
 viewer.setRgbConnectionStatus("RGB未连接，可在设备页连接Hikrobot","未连接");
+viewer.setFusionState("waiting-dvs","等待 DVS 与 RGB 最新显示帧。");
 viewer.setDisplayAccumulationUs(displayAccumulationUs);
 recorder.open();
 
@@ -67,10 +71,12 @@ while toc(startTime) < cfg.runtime.durationSeconds
     if stopRequested && running
         src.close();
         running=false;
+        latestDvsFrame = [];
         resetProcessingState();
         viewer.resetProcessingView();
         viewer.setRunningState(false);
         viewer.setConnectionStatus("相机已断开，可随时重新连接","未连接");
+        refreshFusion();
     end
     if startRequested && ~running
         resetProcessingState();
@@ -82,9 +88,11 @@ while toc(startTime) < cfg.runtime.durationSeconds
             lastDisplay=tic;
         catch connectionError
             running=false;
+            latestDvsFrame = [];
             viewer.setRunningState(false);
             viewer.setConnectionStatus( ...
                 "连接未完成："+string(connectionError.message),"错误");
+            refreshFusion();
         end
     end
     for commandIndex=1:numel(commands)
@@ -111,16 +119,19 @@ while toc(startTime) < cfg.runtime.durationSeconds
                         end
                         viewer.setRgbConnectionStatus("RGB相机已连接，正在实时取流","已连接");
                         lastRgbDisplay = tic;
+                        refreshFusion();
                     end
                 case "disconnectRgb"
                     if rgbRunning && ~isempty(rgbSrc)
                         rgbSrc.close();
                     end
                     rgbRunning = false;
+                    latestRgbFrame = [];
                     viewer.setRgbRunningState(false);
                     viewer.setRgbCameraInfo(struct("serial","--","model","--"));
                     viewer.setRgbExposureState(NaN);
                     viewer.setRgbConnectionStatus("RGB相机已断开","未连接");
+                    refreshFusion();
                 case "setRgbExposureUs"
                     if ~rgbRunning || isempty(rgbSrc)
                         error("Hikrobot:NotOpen","RGB相机尚未连接。");
@@ -170,11 +181,13 @@ while toc(startTime) < cfg.runtime.durationSeconds
                     catch
                     end
                     rgbRunning = false;
+                    latestRgbFrame = [];
                     viewer.setRgbRunningState(false);
                     viewer.setRgbCameraInfo(struct("serial","--","model","--"));
                     viewer.setRgbExposureState(NaN);
                     viewer.setRgbConnectionStatus( ...
                         "RGB连接已丢失："+string(commandError.message),"错误");
+                    refreshFusion();
                 end
             elseif any(string(command.type) == ["connectRgb","disconnectRgb"])
                 try
@@ -182,11 +195,13 @@ while toc(startTime) < cfg.runtime.durationSeconds
                 catch
                 end
                 rgbRunning = false;
+                latestRgbFrame = [];
                 viewer.setRgbRunningState(false);
                 viewer.setRgbCameraInfo(struct("serial","--","model","--"));
                 viewer.setRgbExposureState(NaN);
                 viewer.setRgbConnectionStatus( ...
                     "RGB命令失败："+string(commandError.message),"错误");
+                refreshFusion();
             else
                 viewer.setCommandError(command,commandError.message);
             end
@@ -197,16 +212,20 @@ while toc(startTime) < cfg.runtime.durationSeconds
         try
             rgbFrame = rgbSrc.readDisplayFrame();
             if ~isempty(rgbFrame)
+                latestRgbFrame = rgbFrame;
                 viewer.updateRgb(rgbFrame);
+                refreshFusion();
             end
         catch rgbReadError
             try, rgbSrc.close(); catch, end
             rgbRunning = false;
+            latestRgbFrame = [];
             viewer.setRgbRunningState(false);
             viewer.setRgbCameraInfo(struct("serial","--","model","--"));
             viewer.setRgbExposureState(NaN);
             viewer.setRgbConnectionStatus( ...
                 "RGB取流失败："+string(rgbReadError.message),"错误");
+            refreshFusion();
         end
         lastRgbDisplay = tic;
     end
@@ -269,7 +288,11 @@ while toc(startTime) < cfg.runtime.durationSeconds
 
     if cfg.display.enabled && toc(lastDisplay) >= 1/displayRefreshHz
         frame = src.readDisplayFrame();
-        viewer.update(frame,track,stats);
+        if ~isempty(frame)
+            latestDvsFrame = frame;
+            viewer.update(frame,track,stats);
+            refreshFusion();
+        end
         lastDisplay = tic;
         if ~viewer.isRunning(), break; end
     end
@@ -297,6 +320,20 @@ end
         catch
         end
     end
+
+    function refreshFusion
+        if ~cfg.display.enabled || ~viewer.isRunning()
+            return
+        end
+        result = fusionRenderer.render(latestDvsFrame,latestRgbFrame);
+        viewer.setFusionState(result.status,result.reason);
+        if result.valid
+            viewer.updateFusion(result.frame);
+        else
+            viewer.clearFusion();
+        end
+    end
+
     function ensureRgbSource
         if isempty(rgbSrc) || ~isvalid(rgbSrc)
             rgbSrc = camera.HikrobotCameraSource(cfg);
