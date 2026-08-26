@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "platform": "windows-x64",
+  "generatedAt": "2026-08-17",
+  "ownership": {
+    "matlabLoads": ["dvsense_bridge.dll"],
+    "helperLoads": [
+      "dvsense_helper.exe",
+      "DvsenseBase.dll",
+      "DvsenseDriver.dll",
+      "DvsenseHal.dll",
+      "fmt.dll",
+      "libusb-1.0.dll",
+      "spdlog.dll",
+      "avcodec-62.dll",
+      "avformat-62.dll",
+      "avutil-60.dll",
+      "swresample-6.dll",
+      "swscale-9.dll"
+    ]
+  },
+  "files": [
+    {"name":"dvsense_bridge.dll","sha256":"D94CD2ADFCDAB0BA499C84377A576AAC2CF413546B3AD8E14CB524FB0871383C","origin":"project build","license":"project"},
+    {"name":"dvsense_helper.exe","sha256":"4FF269D698C7A037A7C387AE4B4186D1D0F22883E8A77BA7274FB226F765EDC4","origin":"project build","license":"project"},
+    {"name":"DvsenseBase.dll","sha256":"11DE73867B3A176E2C83103D940413BAC87085CAF4B37CC4A52BFF7A4884BDE9","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"DvsenseDriver.dll","sha256":"1650CE6EFC0CE2A0D5DB0DFDF9D70343C336D8D56A1F53AF8BB3F3366FD27FDB","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"DvsenseHal.dll","sha256":"F6C0B690C7E773423EA852F9D16F611A64309919940A6936DE65C03C5A532EE8","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"fmt.dll","sha256":"57C291C3A263A67F53A4EE359EC04BB4FEC549C4FF7F7A0A0335E5DE60BBBD27","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"libusb-1.0.dll","sha256":"E0A05A939A97F06DB7D83122917E096D244593AD54EDB0471B9EB6DC92358B7F","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"spdlog.dll","sha256":"8F70833897E6650A11B6433BEF2E0DFE7A53693EAF263A3E932668B2F2B31192","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"avcodec-62.dll","sha256":"6A6CFF379916FA94F4960BF11A8F722884F7AAD617E3564129945E2EDF487CE2","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"avformat-62.dll","sha256":"96A20462564F67F99392BD661E998AB4D64DB7C1A407C9C46C737386EE7D3F0B","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"avutil-60.dll","sha256":"8FEDE87B46A7E04F331E4B0D535F10347F0E4838D288ACA553C3E85AB9A48540","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"swresample-6.dll","sha256":"733991488E5AA531396F27F17CF4FAF75F04C39AB5050ED1C54A8A9E8C676198","origin":"DVSense SDK bin","license":"vendor"},
+    {"name":"swscale-9.dll","sha256":"9325C14B2FD005A7D9E90940CEFA189EC6DEE46839AEDE847DD663F493B1D039","origin":"DVSense SDK bin","license":"vendor"}
+  ]
+}

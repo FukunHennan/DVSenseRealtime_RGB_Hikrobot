@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--surface:#fff;--soft:#f4f5f6;--softblue:#e7f1f5;--line:#e1e5e7;--ink:#07577c;--text:#566b77;--muted:#819099}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}body{background:#fff;color:var(--ink);font-family:"Segoe UI","Microsoft YaHei",sans-serif}
+.app{height:100%;display:grid;grid-template-columns:54px 1fr}.rail{background:#eef2f4;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center}.brand,.gear{width:54px;height:56px;display:grid;place-items:center;font-size:19px}.nav{width:54px;height:48px;border:0;border-radius:0 19px 19px 0;background:var(--ink);color:#fff;font-size:11px}.spacer{flex:1}.gear{color:var(--muted)}
+.pane{display:grid;grid-template-rows:72px 1fr 42px;min-width:0}.head{display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--line)}.head strong{font-size:21px}.groups{padding:14px 14px;overflow:auto}.group{margin-bottom:8px}.title{height:40px;width:100%;border:0;background:var(--soft);color:var(--ink);display:flex;align-items:center;padding:0 14px;text-align:left;font-size:15px;cursor:pointer}.open .title{background:var(--softblue)}.arrow{margin-left:auto;color:#8d979c}.content{max-height:0;overflow:hidden;transition:max-height .18s ease}.open .content{max-height:2000px}.param{min-height:58px;padding:8px 12px;border-bottom:1px solid #f1f2f3}.param:nth-child(even){background:#fbfbfb}.param.emphasis{min-height:74px;background:#f3f9fc;border-left:3px solid var(--ink)}.param.emphasis .name{color:var(--ink);font-size:15px;font-weight:650}.line{display:grid;grid-template-columns:minmax(120px,1fr) auto;gap:12px;align-items:center}.name{color:var(--text);font-size:13px;white-space:nowrap}.stepper{display:flex;align-items:center;gap:7px}.stepper button{width:25px;height:30px;border:0;background:transparent;color:var(--ink);font-size:20px;font-weight:650;cursor:pointer}.stepper button:active{transform:scale(.92)}.number{width:68px;height:32px;border:1px solid #abb4b8;border-radius:3px;text-align:center;color:#31444d}.number:focus{outline:2px solid #b9d8e5;outline-offset:-1px}.unit{color:var(--muted);font-size:12px}.range{width:118px;accent-color:var(--ink)}.emphasis .range{width:132px}select,.boolean{height:32px;min-width:115px;border:1px solid #b7c0c4;border-radius:3px;background:#fff;color:#40545e;padding:0 8px}select:focus,.boolean:focus{outline:2px solid #b9d8e5;outline-offset:-1px}.boolean{min-width:70px;color:var(--ink);cursor:pointer}.foot{padding:0 18px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+</style></head>
+<body><main class="app"><aside class="rail"><div class="brand">▣</div><button class="nav">DVS</button><div class="spacer"></div><button class="gear">⚙</button></aside><section class="pane"><header class="head"><strong>DVS设置</strong></header><div class="groups" id="groups"></div><footer class="foot"><span id="count">参数范围来自 SDK 元数据</span><span id="state">未修改</span></footer></section></main>
+<script>
+function setup(htmlComponent){
+ var groups=document.getElementById("groups");
+ var count=document.getElementById("count");
+ var state=document.getElementById("state");
+ var structureSignature="";
+ var rowsByKey={};
+ var pendingTimers={};
+  var lastSequence=0;
+  var accumulationInput=null;
+  var accumulationNumber=null;
+
+ function send(type,payload){
+   htmlComponent.Data={version:1,sequence:Date.now(),type:type,payload:payload};
+ }
+
+ function parameterSignature(parameters){
+   var shape=[];
+   var index;
+   for(index=0;index<parameters.length;index++){
+     var p=parameters[index];
+     shape.push([String(p.tool),String(p.name),String(p.type),Number(p.min),Number(p.max),String(p.step||""),optionList(p.options).join("\u001f")].join("\u001e"));
+   }
+   return shape.join("\u001d");
+ }
+
+ function structureKey(p,index){return String(p.tool)+"\u001f"+String(p.name)+"\u001f"+index}
+ function optionList(value){
+   var result=[],index;
+   if(value===undefined||value===null){return result}
+   if(typeof value==="string"||typeof value==="number"||typeof value==="boolean"){result.push(String(value));return result}
+   if(Array.isArray(value)){
+     for(index=0;index<value.length;index++){result.push(String(value[index]))}
+     return result;
+   }
+   if(typeof value==="object"){
+     if(value.length!==undefined){
+       for(index=0;index<Number(value.length);index++){result.push(String(value[index]))}
+     }else{
+       result.push(String(value));
+     }
+   }
+   return result;
+ }
+ function displayToolName(tool){
+   var names={
+     "Biases":"偏置参数",
+     "AntiFlicker":"抗闪烁",
+     "EventRateControl":"事件率控制",
+     "EventTrailFilter":"事件拖尾过滤",
+     "ROI":"感兴趣区域",
+     "Sync":"同步",
+     "TriggerIn":"外部触发"
+   };
+   return names[String(tool)]||String(tool);
+ }
+ function displayParameterName(p){
+   var key=String(p.tool)+"/"+String(p.name);
+   var names={
+     "Biases/bias_diff":"事件阈值差分",
+     "Biases/bias_diff_off":"OFF事件阈值",
+     "Biases/bias_diff_on":"ON事件阈值",
+     "Biases/bias_fo":"低频截止偏置",
+     "Biases/bias_hpf":"高通滤波偏置",
+     "Biases/bias_refr":"不应期偏置",
+     "AntiFlicker/duty_cycle":"占空比",
+     "AntiFlicker/enable":"启用抗闪烁",
+     "AntiFlicker/fliter_mode":"滤波模式",
+     "AntiFlicker/high_frequency":"高频截止",
+     "AntiFlicker/low_frequency":"低频截止",
+     "AntiFlicker/start_threshold":"启动阈值",
+     "AntiFlicker/stop_threshold":"停止阈值",
+     "EventRateControl/enable":"启用事件率控制",
+     "EventRateControl/max_event_rate":"最大事件率",
+     "EventTrailFilter/enable":"启用拖尾过滤",
+     "EventTrailFilter/threshold":"拖尾阈值",
+     "EventTrailFilter/type":"过滤类型",
+     "ROI/enable":"启用ROI",
+     "ROI/height":"ROI高度",
+     "ROI/mode":"ROI模式",
+     "ROI/width":"ROI宽度",
+     "ROI/x":"ROI横向起点",
+     "ROI/y":"ROI纵向起点",
+     "Sync/mode":"同步模式",
+     "TriggerIn/enable":"启用外部触发"
+   };
+   return names[key]||String(p.name);
+ }
+ function numericStep(p){
+   var value=Number(p.step);
+   if(isFinite(value)&&value>0){return value}
+   return String(p.type).toUpperCase()==="INT"?1:0.1;
+ }
+ function clampNumber(p,value){
+   var number=Number(value),min=Number(p.min),max=Number(p.max);
+   if(!isFinite(number)){number=isFinite(min)?min:0}
+   if(isFinite(min)){number=Math.max(min,number)}
+   if(isFinite(max)){number=Math.min(max,number)}
+   return number;
+ }
+ function formatNumber(value){
+   if(value===undefined||value===null||value===""){return ""}
+   return String(value);
+ }
+ function setState(text){state.textContent=text}
+
+ function setGroupOpen(section,open){
+   section.dataset.open=open?"true":"false";
+   section.classList.toggle("open",open);
+   var content=section.querySelector(".content"),arrow=section.querySelector(".arrow");
+   if(content){content.style.maxHeight=open?content.scrollHeight+"px":"0px"}
+   if(arrow){arrow.textContent=open?"⌃":"⌄"}
+ }
+ function updateCollapseHeights(){
+   var openSections=groups.querySelectorAll(".group[data-open='true']");
+   var index,content;
+   for(index=0;index<openSections.length;index++){
+     content=openSections[index].querySelector(".content");
+     if(content){content.style.maxHeight=content.scrollHeight+"px"}
+   }
+ }
+  function clampAccumulationUs(value){
+    var next=Math.round(Number(value));
+    if(!isFinite(next)){next=5000}
+    return Math.max(1000,Math.min(100000,next));
+  }
+  function accumulationMs(valueUs){return clampAccumulationUs(valueUs)/1000}
+  function formatAccumulation(valueUs){return accumulationMs(valueUs).toFixed(2)}
+  function commitAccumulation(valueMs){
+    var next=clampAccumulationUs(Number(valueMs)*1000);
+    if(accumulationInput){accumulationInput.value=String(accumulationMs(next))}
+    if(accumulationNumber){accumulationNumber.value=formatAccumulation(next)}
+    setState("已修改");
+    send("setDisplayAccumulationUs",{value:next});
+  }
+  function updateAccumulation(valueUs){
+    var next=clampAccumulationUs(valueUs);
+    if(accumulationInput&&document.activeElement!==accumulationInput){accumulationInput.value=String(accumulationMs(next))}
+    if(accumulationNumber&&document.activeElement!==accumulationNumber){accumulationNumber.value=formatAccumulation(next)}
+  }
+
+ function scheduleNumericCommit(row,value){
+   var key=row.key;
+   if(pendingTimers[key]){clearTimeout(pendingTimers[key])}
+   pendingTimers[key]=setTimeout(function(){
+     delete pendingTimers[key];
+     send("setToolParameter",{index:row.index,tool:row.parameter.tool,name:row.parameter.name,value:value});
+   },100);
+ }
+ function commitNumeric(row,input,immediate){
+   var value=clampNumber(row.parameter,input.value);
+   input.value=formatNumber(value);setState("已修改");
+   if(immediate){
+     if(pendingTimers[row.key]){clearTimeout(pendingTimers[row.key]);delete pendingTimers[row.key]}
+     send("setToolParameter",{index:row.index,tool:row.parameter.tool,name:row.parameter.name,value:value});
+   }else{scheduleNumericCommit(row,value)}
+ }
+
+ function updateRow(row,p){
+   var current=p.current;
+   if(current===undefined||current===null||(Array.isArray(current)&&current.length===0)){current=row.parameter.current}
+   row.parameter=p;
+   row.parameter.current=current;
+   var value=current;
+   if(row.input){
+     row.input.placeholder="";
+     if(!pendingTimers[row.key]&&document.activeElement!==row.input){row.input.value=formatNumber(value)}
+     row.input.min=p.min;row.input.max=p.max;row.input.step=numericStep(p);
+   }else if(row.control){
+     if(String(p.type).toUpperCase()==="BOOL"){row.control.textContent=String(value).toLowerCase()==="true"?"启用":"禁用"}
+     else{row.control.value=String(value)}
+   }
+ }
+
+ function createRow(p,index){
+   var wrap=document.createElement("div"),line=document.createElement("div"),name=document.createElement("span");
+   var row={key:structureKey(p,index),index:index,parameter:p,input:null,control:null};
+   wrap.className="param";line.className="line";name.className="name";name.textContent=displayParameterName(p);name.title=String(p.tool)+" / "+String(p.name);line.appendChild(name);
+   if(String(p.type).toUpperCase()==="INT"||String(p.type).toUpperCase()==="FLOAT"){
+     var stepper=document.createElement("span"),minus=document.createElement("button"),input=document.createElement("input"),plus=document.createElement("button");
+     stepper.className="stepper";minus.type="button";minus.textContent="−";minus.title="减小参数";input.className="number";input.type="number";plus.type="button";plus.textContent="+";plus.title="增大参数";
+     row.input=input;input.type="text";input.inputMode="decimal";input.min=p.min;input.max=p.max;input.step=numericStep(p);input.value=formatNumber(p.current===undefined?"":p.current);
+     minus.onclick=function(){input.value=String(clampNumber(row.parameter,Number(input.value)-numericStep(row.parameter)));commitNumeric(row,input,false)};
+     plus.onclick=function(){input.value=String(clampNumber(row.parameter,Number(input.value)+numericStep(row.parameter)));commitNumeric(row,input,false)};
+     input.oninput=function(){input.value=input.value.replace(/[^\d.\-]/g,"")};
+     input.onchange=function(){commitNumeric(row,input,false)};input.onblur=function(){commitNumeric(row,input,false)};
+     stepper.appendChild(minus);stepper.appendChild(input);stepper.appendChild(plus);line.appendChild(stepper);
+   }else{
+     var control=String(p.type).toUpperCase()==="BOOL"?document.createElement("button"):document.createElement("select");
+     row.control=control;
+     if(String(p.type).toUpperCase()==="BOOL"){
+       control.className="boolean";control.type="button";
+       control.onclick=function(){
+         var next=control.textContent!=="启用";control.textContent=next?"启用":"禁用";setState("已修改");
+         send("setToolParameter",{index:row.index,tool:row.parameter.tool,name:row.parameter.name,value:next});
+       };
+     }else{
+       var options=optionList(p.options),optionIndex;
+       for(optionIndex=0;optionIndex<options.length;optionIndex++){
+         var option=document.createElement("option");option.value=String(options[optionIndex]);option.textContent=String(options[optionIndex]);control.appendChild(option);
+       }
+       control.onchange=function(){setState("已修改");send("setToolParameter",{index:row.index,tool:row.parameter.tool,name:row.parameter.name,value:control.value})};
+     }
+     line.appendChild(control);
+   }
+   wrap.appendChild(line);return {element:wrap,row:row};
+ }
+
+ function build(parameters){
+   var grouped={},order=[],index;
+   while(groups.firstChild){groups.removeChild(groups.firstChild)}
+   rowsByKey={};
+   buildDisplayGroup();
+   for(index=0;index<parameters.length;index++){
+     var p=parameters[index],tool=String(p.tool);
+     if(!grouped[tool]){grouped[tool]=[];order.push(tool)}
+     grouped[tool].push({parameter:p,index:index+1});
+   }
+   for(index=0;index<order.length;index++){
+     var toolName=order[index],section=document.createElement("section"),title=document.createElement("button"),arrow=document.createElement("span"),content=document.createElement("div"),items=grouped[toolName],itemIndex;
+     section.className="group";section.dataset.open="false";title.className="title";title.type="button";title.innerHTML="<span title=\""+toolName+"\">"+displayToolName(toolName)+"</span>";arrow.className="arrow";title.appendChild(arrow);
+     title.onclick=function(target){return function(){setGroupOpen(target,target.dataset.open!=="true")}}(section);
+     content.className="content";section.appendChild(title);section.appendChild(content);groups.appendChild(section);
+     for(itemIndex=0;itemIndex<items.length;itemIndex++){
+       var built=createRow(items[itemIndex].parameter,items[itemIndex].index);content.appendChild(built.element);rowsByKey[built.row.key]=built.row;
+     }
+     setGroupOpen(section,false);
+   }
+   structureSignature=parameterSignature(parameters);count.textContent=parameters.length+"项参数";
+ }
+  function buildDisplayGroup(){
+    var section=document.createElement("section"),title=document.createElement("button"),arrow=document.createElement("span"),content=document.createElement("div");
+    var accumulationWrap=document.createElement("div"),accumulationLine=document.createElement("div"),accumulationName=document.createElement("span"),accumulationControls=document.createElement("span"),accumulationSlider=document.createElement("input"),accumulationNumberInput=document.createElement("input"),accumulationUnit=document.createElement("span");
+    section.className="group";title.className="title";title.type="button";title.innerHTML="<span>显示与刷新</span>";arrow.className="arrow";title.appendChild(arrow);
+    content.className="content";
+
+    accumulationWrap.className="param emphasis";
+    accumulationLine.className="line";
+    accumulationName.className="name";
+    accumulationName.textContent="事件累计时间";
+    accumulationControls.className="stepper";
+    accumulationSlider.className="range";
+    accumulationSlider.type="range";
+    accumulationSlider.min="1";
+    accumulationSlider.max="100";
+    accumulationSlider.step="0.01";
+    accumulationSlider.value="5";
+    accumulationNumberInput.className="number";
+    accumulationNumberInput.type="text";
+    accumulationNumberInput.inputMode="decimal";
+    accumulationNumberInput.value="5.00";
+    accumulationUnit.className="unit";
+    accumulationUnit.textContent="ms";
+    accumulationInput=accumulationSlider;
+    accumulationNumber=accumulationNumberInput;
+    accumulationSlider.oninput=function(){accumulationNumberInput.value=Number(accumulationSlider.value).toFixed(2)};
+    accumulationSlider.onchange=function(){commitAccumulation(accumulationSlider.value)};
+    accumulationNumberInput.oninput=function(){accumulationNumberInput.value=accumulationNumberInput.value.replace(/[^\d.\-]/g,"")};
+    accumulationNumberInput.onchange=function(){commitAccumulation(accumulationNumberInput.value)};
+    accumulationNumberInput.onblur=function(){commitAccumulation(accumulationNumberInput.value)};
+    accumulationControls.appendChild(accumulationSlider);accumulationControls.appendChild(accumulationNumberInput);accumulationControls.appendChild(accumulationUnit);
+    accumulationLine.appendChild(accumulationName);accumulationLine.appendChild(accumulationControls);accumulationWrap.appendChild(accumulationLine);
+    content.appendChild(accumulationWrap);
+    title.onclick=function(){setGroupOpen(section,section.dataset.open!=="true")};
+    section.appendChild(title);section.appendChild(content);groups.appendChild(section);setGroupOpen(section,true);
+  }
+
+ function apply(parameters){
+   var signature=parameterSignature(parameters),index;
+   if(signature!==structureSignature){build(parameters);return}
+   for(index=0;index<parameters.length;index++){
+     var row=rowsByKey[structureKey(parameters[index],index+1)];if(row){updateRow(row,parameters[index])}
+   }
+   count.textContent=parameters.length+"项参数";updateCollapseHeights();
+ }
+ function decodeParameters(data){
+   if(typeof data.parameterJson==="string"&&data.parameterJson.length){
+     try{return JSON.parse(data.parameterJson)}catch(ignore){}
+   }
+   if(Array.isArray(data.parameters)){return data.parameters}
+   return [];
+ }
+ function receive(event){
+   var data=event&&event.Data?event.Data:(htmlComponent.Data||{});
+   if(data.sequence&&Number(data.sequence)<=lastSequence){return}
+   if(data.sequence){lastSequence=Number(data.sequence)}
+   try{
+      var parameters=decodeParameters(data);
+      if(parameters.length){apply(parameters)}
+      else if(structureSignature===""){build([])}
+       if(data.displayAccumulationUs!==undefined){updateAccumulation(data.displayAccumulationUs)}
+    }catch(error){
+      setState("参数读取失败");
+    }
+  }
+ htmlComponent.addEventListener("DataChanged",receive);receive(null);
+}
+</script></body></html>

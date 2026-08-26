@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--page:#eef0f2;--surface:#fff;--line:#e1e5e7;--ink:#07577c;--muted:#819099;--green:#4dab79;--event:#707070}
+*{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden}
+body{background:var(--page);font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:var(--ink)}
+button{font:inherit;cursor:pointer}.app{width:100%;height:100%;display:grid;grid-template-columns:54px 1fr;background:#fff;overflow:hidden}
+.rail{background:#eef2f4;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center}
+.brand,.gear{width:54px;height:56px;display:grid;place-items:center;font-size:19px}.brand{color:var(--ink)}
+.nav{width:54px;height:48px;border:0;border-radius:0 19px 19px 0;background:var(--ink);color:#fff;font-size:11px}
+.spacer{flex:1}.gear{color:var(--muted)}
+.workspace{min-width:0;display:grid;grid-template-rows:70px 1fr 190px;background:#fff}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--line)}
+.meta{display:flex;align-items:center;gap:18px;white-space:nowrap}.meta strong{font-size:16px}.connected{color:var(--green);font-size:12px}
+.actions{display:flex;gap:8px}.action{height:34px;padding:0 12px;border:1px solid #c4ccd0;border-radius:3px;background:#fff;color:var(--ink)}
+.action.active{background:var(--ink);color:#fff}.body{min-height:0;padding:20px 28px 0}.viewer{height:100%;background:var(--event);position:relative}
+.controls{padding:12px 28px 16px}.transport{height:58px;display:flex;justify-content:center;align-items:center;gap:22px;color:#787c7e}
+.transport button{width:34px;height:34px;border:0;background:transparent;color:inherit;font-size:23px}.transport .running{color:var(--ink)}
+.separator{width:1px;height:42px;background:#abb3b6}.record{width:24px;height:24px;border:3px solid #787c7e;border-radius:50%}
+.timeline{height:10px;background:#c6c8c9;border-radius:6px;position:relative}.timeline:before{content:"";position:absolute;left:0;top:-6px;width:22px;height:22px;border-radius:50%;border:3px solid #787c7e;background:#c6c8c9}
+.status{display:flex;justify-content:space-between;padding-top:14px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<main class="app">
+<aside class="rail"><div class="brand">▣</div><button class="nav">DVS</button><div class="spacer"></div><button class="gear" id="settingsButton">⚙</button></aside>
+<section class="workspace">
+<header class="topbar"><div class="meta"><strong>序列号：</strong><span id="serial">--</span><span>|</span><strong>时间戳：</strong><span id="timestamp">--</span><span class="connected" id="connection">● 等待连接</span></div><div class="actions"><button class="action" id="analysisButton" title="轮廓分析">⚙</button><button class="action" id="roiButton" title="框选 ROI">▢</button><button class="action" id="clearRoiButton" title="清除 ROI">×</button><button class="action" id="runButton">▣</button></div></header>
+<div class="body"><div class="viewer"></div></div>
+<footer class="controls"><div class="transport"><button id="snapshotButton">▣</button><div class="separator"></div><button id="recordButton" class="record" aria-label="record"></button><div class="separator"></div><button>◀</button><button id="pauseButton" class="running">Ⅱ</button><button>■</button><button>▶</button><button>↻</button></div><div class="timeline"></div><div class="status"><span id="filename">文件名：</span><span id="streamStats">事件数据带宽：--　事件量：--</span><span id="analysisStats">识别状态：--</span><span id="recognitionStats">识别计数：--</span></div></footer>
+</section>
+</main>
+<script>
+function setup(htmlComponent){
+  const send=(type,payload={})=>{htmlComponent.Data={version:1,sequence:Date.now(),type,payload};};
+  let running=true;
+  document.getElementById("runButton").onclick=()=>send(running?"stop":"start");
+  document.getElementById("pauseButton").onclick=()=>send(running?"stop":"start");
+  document.getElementById("recordButton").onclick=()=>send("startRecording");
+  document.getElementById("analysisButton").onclick=()=>send("showAnalysis");
+  document.getElementById("roiButton").onclick=()=>send("beginROISelection");
+  document.getElementById("clearRoiButton").onclick=()=>send("clearROI");
+  document.getElementById("settingsButton").onclick=()=>send("showSettings");
+  document.getElementById("snapshotButton").onclick=()=>send("snapshot");
+  setInterval(()=>{const d=htmlComponent.Data||{};if(d.serial)document.getElementById("serial").textContent=d.serial;if(d.timestamp)document.getElementById("timestamp").textContent=d.timestamp;if(d.connection)document.getElementById("connection").textContent=d.connection;if(d.eventCount!==undefined)document.getElementById("streamStats").textContent=`事件数据带宽：${d.bandwidth||"--"}　事件量：${d.eventCount}`;if(d.analysisStatus||d.analysisReason){document.getElementById("analysisStats").textContent=`识别状态：${d.analysisStatus||"--"}${d.analysisReason?" · "+d.analysisReason:""}`;}if(d.maskPixelCount!==undefined){document.getElementById("recognitionStats").textContent=`识别计数：raw ${d.rawEventCount||0} / filt ${d.filteredEventCount||0} / mask ${d.maskPixelCount||0} / outline ${d.outlinePointCount||0} / center ${d.centerlinePointCount||0}`;}if(d.running!==undefined){running=!!d.running;document.getElementById("runButton").textContent=running?"▣":"▶";document.getElementById("pauseButton").textContent=running?"Ⅱ":"▶";}},100);
+}
+</script>
+</body>
+</html>

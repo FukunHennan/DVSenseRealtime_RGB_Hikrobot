@@ -1,0 +1,21 @@
+{
+  "configVersion": 1,
+  "paths": {
+    "sdkRoot": "C:/Program Files (x86)/DvsenseDriver",
+    "mvsRoot": "C:/Program Files (x86)/MVS",
+    "mvsRuntimeRoot": "C:/Program Files (x86)/Common Files/MVS/Runtime/Win64_x64",
+    "fusionSdkRoot": "${PROJECT_ROOT}/vendor/dvsense-fusion-sdk"
+  },
+  "camera": {
+    "event": {
+      "serial": ""
+    },
+    "rgb": {
+      "serial": ""
+    }
+  },
+  "trigger": {
+    "mode": "hardware",
+    "syncBox": true
+  }
+}

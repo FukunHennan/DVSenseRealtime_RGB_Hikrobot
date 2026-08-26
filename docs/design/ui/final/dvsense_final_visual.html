@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DVSense Final UI Reference</title>
+  <style>
+    :root {
+      --page: #eef0f2;
+      --surface: #ffffff;
+      --soft: #f5f6f7;
+      --line: #e2e5e7;
+      --ink: #174f6c;
+      --muted: #6b7c86;
+      --blue: #075d83;
+      --blue-soft: #e7f1f5;
+      --event: #707070;
+      --on: #f5f5f5;
+      --off: #111111;
+      --green: #64c795;
+      --shadow: 0 2px 10px rgba(42, 56, 64, .12);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); }
+    .sheet { width: 1600px; min-height: 980px; padding: 34px; }
+    .sheet h1 { margin: 0 0 8px; font-size: 26px; font-weight: 650; }
+    .sheet p { margin: 0 0 24px; color: var(--muted); font-size: 14px; }
+    .desktop { display: flex; gap: 22px; align-items: flex-start; }
+    .window { display: flex; background: var(--surface); border-radius: 7px; box-shadow: var(--shadow); overflow: hidden; }
+    .main { width: 1180px; height: 760px; }
+    .settings { width: 420px; height: 760px; }
+    .analysis { width: 720px; height: 600px; margin-top: 22px; }
+    .rail { width: 54px; background: #eef2f4; border-right: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; }
+    .rail .logo { width: 54px; height: 56px; display: grid; place-items: center; color: var(--blue); font-size: 20px; }
+    .rail .nav { width: 54px; min-height: 48px; display: grid; place-items: center; color: var(--ink); font-size: 11px; }
+    .rail .nav.active { background: var(--blue); color: #fff; border-radius: 0 18px 18px 0; }
+    .rail .spacer { flex: 1; }
+    .rail .gear { padding: 18px 0; color: var(--muted); font-size: 19px; }
+    .content { flex: 1; min-width: 0; background: var(--surface); }
+    .topbar { height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; border-bottom: 1px solid var(--line); }
+    .topbar .meta { display: flex; gap: 30px; align-items: center; font-size: 16px; }
+    .topbar strong { font-size: 18px; }
+    .topbar .state { color: #4c9a73; font-size: 13px; }
+    .top-actions { display: flex; gap: 10px; align-items: center; }
+    .icon-button { border: 0; background: transparent; color: var(--muted); font-size: 20px; padding: 5px 7px; }
+    .body { padding: 20px 28px 18px; }
+    .event-frame { height: 480px; background: var(--event); position: relative; overflow: hidden; }
+    .event-frame::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(245,245,245,.95) 0 1.3px, transparent 1.7px); background-size: 39px 33px; opacity: .48; }
+    .event-frame::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(17,17,17,.95) 0 1.2px, transparent 1.6px); background-size: 61px 46px; background-position: 12px 11px; opacity: .55; }
+    .roi { position: absolute; left: 39%; top: 23%; width: 28%; height: 49%; border: 2px solid var(--green); z-index: 2; }
+    .roi-label { position: absolute; left: calc(67% + 10px); top: 21%; color: #b5efc8; font-size: 13px; z-index: 3; }
+    .centerline { position: absolute; z-index: 3; left: 43%; top: 29%; width: 21%; height: 35%; border-left: 2px solid transparent; transform: rotate(7deg); }
+    .centerline::after { content: ""; position: absolute; left: 42px; top: 1px; width: 2px; height: 170px; background: #b5efc8; transform: rotate(16deg); box-shadow: 0 0 0 1px rgba(0,0,0,.1); }
+    .controlbar { height: 90px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 26px; color: #777; }
+    .controlbar .divider { width: 1px; height: 50px; background: #aeb5b8; }
+    .controlbar .control { font-size: 27px; line-height: 1; }
+    .controlbar .record { width: 24px; height: 24px; border: 3px solid #777; border-radius: 50%; }
+    .timeline { padding: 18px 10px 0; }
+    .track { height: 12px; background: #c7c9ca; border-radius: 7px; position: relative; }
+    .thumb { position: absolute; left: 0; top: -6px; width: 24px; height: 24px; background: #c7c9ca; border: 3px solid #777; border-radius: 50%; }
+    .bottom-meta { display: flex; justify-content: space-between; padding-top: 18px; color: var(--muted); font-size: 13px; }
+    .settings .content { display: flex; flex-direction: column; }
+    .settings-head { height: 72px; display: flex; align-items: center; padding: 0 24px; border-bottom: 1px solid var(--line); }
+    .settings-head h2 { margin: 0; font-size: 22px; font-weight: 650; }
+    .settings-body { padding: 18px 14px 16px; overflow: hidden; }
+    .param-section { margin-bottom: 8px; }
+    .section-head { height: 40px; background: var(--soft); display: flex; align-items: center; justify-content: space-between; padding: 0 14px; color: var(--ink); font-size: 16px; }
+    .section-head.open { background: var(--blue-soft); }
+    .section-head .chevron { color: #8d969a; font-size: 18px; }
+    .param-row { height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; }
+    .param-row:nth-child(odd) { background: #fbfbfb; }
+    .param-name { color: #64747d; font-size: 14px; }
+    .stepper { display: flex; align-items: center; gap: 9px; color: var(--blue); }
+    .stepper .minus, .stepper .plus { font-size: 21px; font-weight: 650; }
+    .value { width: 72px; height: 34px; border: 1px solid #aeb4b7; border-radius: 3px; text-align: center; line-height: 32px; color: #36464d; background: #fff; }
+    .settings-foot { margin-top: auto; padding: 15px 22px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .analysis .content { padding: 26px; }
+    .analysis-head { display: flex; justify-content: space-between; align-items: center; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .analysis-head h2 { margin: 0; font-size: 21px; }
+    .analysis-head span { font-size: 13px; color: var(--muted); }
+    .plot { height: 330px; margin-top: 20px; border: 1px solid var(--line); position: relative; background: #fff; overflow: hidden; }
+    .plot .grid { position: absolute; inset: 20px; background: repeating-linear-gradient(to right, transparent 0 82px, #eef1f2 83px), repeating-linear-gradient(to bottom, transparent 0 58px, #eef1f2 59px); }
+    .plot svg { position: absolute; inset: 20px; width: calc(100% - 40px); height: calc(100% - 40px); }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-top: 22px; }
+    .metric { border-top: 3px solid var(--blue-soft); padding-top: 12px; }
+    .metric small { color: var(--muted); display: block; font-size: 13px; }
+    .metric strong { display: block; margin-top: 7px; font-size: 22px; font-weight: 600; }
+    .legend { margin-top: 22px; display: flex; gap: 24px; color: var(--muted); font-size: 13px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot.green { background: var(--green); }
+    .dot.blue { background: var(--blue); }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <h1>DVSense 单 DVS 相机上位机 · 最终视觉基准</h1>
+    <p>以官方上位机截图为视觉基准：白色工作区、窄侧栏、蓝色选中态、官方事件灰底与底部播放控制。此页是后续 MATLAB 正式 GUI 的验收参照。</p>
+    <section class="desktop">
+      <article class="window main" id="live">
+        <aside class="rail">
+          <div class="logo">▣</div>
+          <div class="nav active">DVS</div>
+          <div class="spacer"></div>
+          <div class="gear">⚙</div>
+        </aside>
+        <div class="content">
+          <header class="topbar">
+            <div class="meta"><strong>序列号：</strong><span>ffffffffffffffaf</span><span>|</span><span><strong>时间戳：</strong>00:21:00:3147</span><span class="state">● 已连接</span></div>
+            <div class="top-actions"><button class="icon-button">▣</button><button class="icon-button">⚙</button></div>
+          </header>
+          <div class="body">
+            <div class="event-frame"><div class="roi"></div><div class="roi-label">中心线 / ROI</div><div class="centerline"></div></div>
+            <div class="controlbar"><div class="control">▣</div><div class="divider"></div><div class="record"></div><div class="divider"></div><div class="control">◀</div><div class="control">Ⅱ</div><div class="control">■</div><div class="control">▶</div><div class="control">↻</div></div>
+            <div class="timeline"><div class="track"><div class="thumb"></div></div><div class="bottom-meta"><span>文件名：</span><span>事件数据带宽：37.6 MB/s　事件量：9.3 Mev/s</span></div></div>
+          </div>
+        </div>
+      </article>
+      <article class="window settings" id="settings">
+        <aside class="rail">
+          <div class="logo">▣</div>
+          <div class="nav active">DVS</div>
+          <div class="spacer"></div>
+          <div class="gear">⚙</div>
+        </aside>
+        <div class="content">
+          <header class="settings-head"><h2>DVS设置</h2></header>
+          <div class="settings-body">
+            <div class="param-section">
+              <div class="section-head open"><span>Biases</span><span class="chevron">⌃</span></div>
+              <div class="param-row"><span class="param-name">Bias Diff Off (%)</span><span class="stepper"><span class="minus">−</span><span class="value">0</span><span class="plus">+</span></span></div>
+              <div class="param-row"><span class="param-name">Bias Diff On (%)</span><span class="stepper"><span class="minus">−</span><span class="value">0</span><span class="plus">+</span></span></div>
+              <div class="param-row"><span class="param-name">Bias Fo (%)</span><span class="stepper"><span class="minus">−</span><span class="value">0</span><span class="plus">+</span></span></div>
+              <div class="param-row"><span class="param-name">Bias Hpf (%)</span><span class="stepper"><span class="minus">−</span><span class="value">0</span><span class="plus">+</span></span></div>
+              <div class="param-row"><span class="param-name">Bias Refr (%)</span><span class="stepper"><span class="minus">−</span><span class="value">0</span><span class="plus">+</span></span></div>
+            </div>
+            <div class="param-section"><div class="section-head"><span>触发信号输入</span><span class="chevron">⌄</span></div></div>
+            <div class="param-section"><div class="section-head"><span>防闪烁</span><span class="chevron">⌄</span></div></div>
+            <div class="param-section"><div class="section-head"><span>事件速率控制</span><span class="chevron">⌄</span></div></div>
+            <div class="param-section"><div class="section-head"><span>事件跟踪过滤器</span><span class="chevron">⌄</span></div></div>
+            <div class="param-section"><div class="section-head"><span>ROI</span><span class="chevron">⌄</span></div></div>
+            <div class="param-section"><div class="section-head"><span>同步</span><span class="chevron">⌄</span></div></div>
+          </div>
+          <footer class="settings-foot"><span>参数范围来自 SDK 元数据</span><span>未修改</span></footer>
+        </div>
+      </article>
+    </section>
+    <section class="window analysis" id="analysis">
+      <div class="content">
+        <header class="analysis-head"><h2>轮廓与中心线分析</h2><span>MATLAB GPU · DVS 单相机</span></header>
+        <div class="plot"><div class="grid"></div><svg viewBox="0 0 660 290" preserveAspectRatio="none"><path d="M0 237 C80 226 108 128 190 166 S310 232 380 119 S520 116 660 57" fill="none" stroke="#075d83" stroke-width="4"/><path d="M0 246 C80 235 108 137 190 175 S310 241 380 128 S520 125 660 66" fill="none" stroke="#64c795" stroke-width="2" stroke-dasharray="8 7"/></svg></div>
+        <div class="metrics"><div class="metric"><small>轮廓点数</small><strong>742</strong></div><div class="metric"><small>中心线长度</small><strong>1126 px</strong></div><div class="metric"><small>运动状态</small><strong>稳定摆动</strong></div></div>
+        <div class="legend"><span><i class="dot blue"></i>中心线</span><span><i class="dot green"></i>轮廓拟合</span><span>最大曲率：0.018</span></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

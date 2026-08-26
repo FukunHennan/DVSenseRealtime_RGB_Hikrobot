@@ -1,0 +1,43 @@
+# Local brainstorming and editor state
+.superpowers/
+.worktrees/
+.vscode/
+.idea/
+
+# MATLAB generated files
+*.asv
+*.autosave
+*.m~
+*.mlx~
+*.log
+*.matlab.R20*.xml
+slprj/
+codegen/
+
+# Native build intermediates
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.mexw64
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+
+# Generated project output
+artifacts/build/
+artifacts/output/
+artifacts/packages/
+artifacts/previews/
+artifacts/recordings/
+
+# Temporary files
+*.tmp
+*.bak
+Thumbs.db
+desktop.ini
+
+# Machine-local configuration
+config/local.json

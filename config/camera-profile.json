@@ -1,0 +1,28 @@
+{
+  "camera": {
+    "event": {
+      "product": "DVSLume",
+      "serial": "",
+      "lens": {
+        "model": "3MP-HD CCTV LENS 6MM IR",
+        "focalLengthMm": 6,
+        "infrared": true
+      }
+    },
+    "rgb": {
+      "model": "MV-CU050-90UC",
+      "serial": "",
+      "lens": {
+        "model": "HN-1228-CM-C2/3B 12MM 1:2.8 2/3",
+        "focalLengthMm": 12,
+        "aperture": 2.8,
+        "sensorFormat": "2/3"
+      }
+    }
+  },
+  "trigger": {
+    "mode": "hardware",
+    "syncBox": true,
+    "powerRequirement": "5V or 12V according to the installed wiring"
+  }
+}

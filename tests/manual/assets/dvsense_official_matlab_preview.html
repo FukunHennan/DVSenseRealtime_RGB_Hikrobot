@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    :root {
+      --page: #eef0f2;
+      --surface: #ffffff;
+      --soft: #f4f5f6;
+      --soft-blue: #e7f1f5;
+      --line: #e0e4e6;
+      --ink: #07577c;
+      --text: #566b77;
+      --muted: #819099;
+      --green: #4dab79;
+      --event: #707070;
+      --on: #f5f5f5;
+      --off: #111111;
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      background: var(--page);
+      color: var(--ink);
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+    }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .app {
+      width: calc(100% - 28px);
+      height: calc(100% - 28px);
+      margin: 14px;
+      display: grid;
+      grid-template-columns: 52px minmax(340px, 390px) minmax(620px, 1fr);
+      background: var(--surface);
+      border-radius: 7px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(36, 49, 56, .14);
+    }
+    .rail {
+      background: #eef2f4;
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .brand, .gear {
+      width: 52px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      font-size: 18px;
+    }
+    .nav {
+      width: 52px;
+      height: 48px;
+      border: 0;
+      background: var(--ink);
+      color: white;
+      border-radius: 0 19px 19px 0;
+      font-size: 11px;
+    }
+    .rail-spacer { flex: 1; }
+    .parameter-pane {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: 72px 1fr 42px;
+      border-right: 1px solid var(--line);
+      background: #fff;
+    }
+    .parameter-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .parameter-title strong { font-size: 21px; font-weight: 650; }
+    .parameter-title span { color: var(--green); font-size: 12px; }
+    .groups { padding: 14px 12px; overflow-y: auto; scrollbar-width: thin; }
+    .group { margin-bottom: 8px; }
+    .group-title {
+      width: 100%;
+      height: 40px;
+      padding: 0 13px;
+      border: 0;
+      background: var(--soft);
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: left;
+      font-size: 15px;
+    }
+    .group.open .group-title { background: var(--soft-blue); }
+    .group-title .count { margin-left: auto; margin-right: 12px; color: var(--muted); font-size: 11px; }
+    .group-title .arrow { color: #8d979c; }
+    .group-content { display: none; }
+    .group.open .group-content { display: block; }
+    .param {
+      min-height: 70px;
+      padding: 10px 12px 8px;
+      border-bottom: 1px solid #f1f2f3;
+      background: #fff;
+    }
+    .param:nth-child(even) { background: #fbfbfb; }
+    .param-line {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .param-name { color: var(--text); font-size: 13px; white-space: nowrap; }
+    .stepper { display: flex; align-items: center; gap: 7px; }
+    .stepper button {
+      width: 25px;
+      height: 30px;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font-size: 20px;
+      font-weight: 650;
+    }
+    .number {
+      width: 68px;
+      height: 32px;
+      border: 1px solid #abb4b8;
+      border-radius: 3px;
+      color: #31444d;
+      background: #fff;
+      text-align: center;
+      outline: none;
+    }
+    .range {
+      width: 100%;
+      height: 3px;
+      margin-top: 10px;
+      accent-color: var(--ink);
+      cursor: pointer;
+    }
+    .enum, .boolean {
+      height: 32px;
+      min-width: 115px;
+      border: 1px solid #b7c0c4;
+      border-radius: 3px;
+      background: white;
+      color: #40545e;
+      padding: 0 8px;
+    }
+    .boolean { min-width: 70px; color: var(--ink); }
+    .parameter-footer {
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .workspace {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: 72px minmax(0, 1fr) 142px;
+      background: #fff;
+      position: relative;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .device-meta { display: flex; align-items: center; gap: 18px; white-space: nowrap; }
+    .device-meta strong { font-size: 16px; }
+    .connected { color: var(--green); font-size: 12px; }
+    .actions { display: flex; align-items: center; gap: 8px; }
+    .action {
+      height: 34px;
+      padding: 0 12px;
+      border: 1px solid #c4ccd0;
+      border-radius: 3px;
+      background: #fff;
+      color: var(--ink);
+    }
+    .action.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .viewer-wrap { min-height: 0; padding: 18px 24px 0; }
+    .viewer {
+      width: 100%;
+      height: 100%;
+      min-height: 360px;
+      background: var(--event);
+      position: relative;
+      overflow: hidden;
+    }
+    .viewer::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(245,245,245,.95) 0 1.2px, transparent 1.6px);
+      background-size: 37px 31px;
+      opacity: .48;
+    }
+    .viewer::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(17,17,17,.95) 0 1.2px, transparent 1.6px);
+      background-size: 59px 43px;
+      background-position: 9px 15px;
+      opacity: .55;
+    }
+    .roi {
+      display: none;
+      position: absolute;
+      left: 36%;
+      top: 20%;
+      width: 31%;
+      height: 57%;
+      border: 2px solid #7ddeaa;
+      z-index: 3;
+    }
+    .analysis-on .roi { display: block; }
+    .centerline {
+      display: none;
+      position: absolute;
+      left: 49%;
+      top: 28%;
+      width: 3px;
+      height: 47%;
+      z-index: 4;
+      background: #b4efc9;
+      transform: rotate(15deg);
+      transform-origin: center;
+    }
+    .analysis-on .centerline { display: block; }
+    .roi-label {
+      display: none;
+      position: absolute;
+      left: 68%;
+      top: 18%;
+      color: #b4efc9;
+      z-index: 4;
+    }
+    .analysis-on .roi-label { display: block; }
+    .controls { padding: 12px 24px 16px; }
+    .transport {
+      height: 58px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 22px;
+      color: #787c7e;
+    }
+    .transport button {
+      width: 34px;
+      height: 34px;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 23px;
+    }
+    .transport .running { color: var(--ink); }
+    .separator { width: 1px; height: 42px; background: #abb3b6; }
+    .record {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #787c7e;
+      border-radius: 50%;
+    }
+    .timeline { height: 10px; background: #c6c8c9; border-radius: 6px; position: relative; }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: -6px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 3px solid #787c7e;
+      background: #c6c8c9;
+    }
+    .statusline {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .drawer {
+      position: absolute;
+      top: 72px;
+      right: 0;
+      bottom: 0;
+      width: min(360px, 40%);
+      background: rgba(255,255,255,.98);
+      border-left: 1px solid var(--line);
+      box-shadow: -4px 0 12px rgba(35,48,54,.08);
+      z-index: 8;
+      padding: 20px;
+      transform: translateX(102%);
+      transition: transform .18s ease;
+    }
+    .drawer.open { transform: translateX(0); }
+    .drawer-head { display: flex; justify-content: space-between; align-items: center; }
+    .drawer h2 { margin: 0; font-size: 18px; }
+    .close-drawer { border: 0; background: transparent; color: var(--muted); font-size: 22px; }
+    .plot { height: 250px; margin-top: 20px; border: 1px solid var(--line); position: relative; }
+    .plot svg { width: 100%; height: 100%; }
+    .metrics { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-top: 18px; }
+    .metric { border-top: 3px solid var(--soft-blue); padding-top: 9px; }
+    .metric small { display: block; color: var(--muted); }
+    .metric strong { display: block; margin-top: 5px; font-size: 19px; }
+    @media (max-width: 1150px) {
+      .app { grid-template-columns: 48px 330px minmax(520px,1fr); }
+      .device-meta { gap: 10px; font-size: 12px; }
+      .action { padding: 0 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="rail">
+      <div class="brand">▣</div>
+      <button class="nav">DVS</button>
+      <div class="rail-spacer"></div>
+      <div class="gear">⚙</div>
+    </aside>
+    <section class="parameter-pane">
+      <header class="parameter-title"><strong>DVS设置</strong><span>SDK元数据</span></header>
+      <div class="groups" id="groups"></div>
+      <footer class="parameter-footer"><span>26项参数</span><span id="writeState">未修改</span></footer>
+    </section>
+    <section class="workspace" id="workspace">
+      <header class="topbar">
+        <div class="device-meta">
+          <strong>序列号：</strong><span>ffffffffffffffaf</span><span>|</span>
+          <strong>时间戳：</strong><span id="timestamp">00:21:00:3147</span>
+          <span class="connected">● 已连接</span>
+        </div>
+        <div class="actions">
+          <button class="action" id="analysisButton">轮廓分析</button>
+          <button class="action" id="runButton">停止运行</button>
+        </div>
+      </header>
+      <div class="viewer-wrap">
+        <div class="viewer"><div class="roi"></div><div class="centerline"></div><div class="roi-label">中心线 / ROI</div></div>
+      </div>
+      <footer class="controls">
+        <div class="transport">
+          <button>▣</button><div class="separator"></div><div class="record"></div><div class="separator"></div>
+          <button>◀</button><button class="running" id="pauseButton">Ⅱ</button><button>■</button><button>▶</button><button>↻</button>
+        </div>
+        <div class="timeline"></div>
+        <div class="statusline"><span>文件名：</span><span>事件数据带宽：37.6 MB/s　事件量：9.3 Mev/s　GPU</span></div>
+      </footer>
+      <aside class="drawer" id="drawer">
+        <div class="drawer-head"><h2>轮廓与中心线分析</h2><button class="close-drawer" id="closeDrawer">×</button></div>
+        <div class="plot">
+          <svg viewBox="0 0 330 240" preserveAspectRatio="none">
+            <path d="M0 203 C45 192 62 119 105 145 S158 210 198 112 S270 96 330 48" fill="none" stroke="#07577c" stroke-width="4"/>
+            <path d="M0 212 C45 201 62 128 105 154 S158 219 198 121 S270 105 330 57" fill="none" stroke="#58c28c" stroke-width="2" stroke-dasharray="7 6"/>
+          </svg>
+        </div>
+        <div class="metrics">
+          <div class="metric"><small>轮廓点数</small><strong>742</strong></div>
+          <div class="metric"><small>中心线长度</small><strong>1126 px</strong></div>
+          <div class="metric"><small>最大曲率</small><strong>0.018</strong></div>
+          <div class="metric"><small>运动状态</small><strong>稳定摆动</strong></div>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <script>
+    const parameterGroups = [
+      {name:"Biases", params:[
+        ["bias_diff",-25,23,-15,"%"],["bias_diff_off",-30,200,0,"%"],
+        ["bias_diff_on",-80,145,0,"%"],["bias_fo",-20,0,0,"%"],
+        ["bias_hpf",0,120,0,"%"],["bias_refr",0,120,0,"%"]]},
+      {name:"AntiFlicker", params:[
+        ["enable",0,1,false,"bool"],["fliter_mode",0,0,"Band cut","enum"],
+        ["duty_cycle",0,100,50,"%"],["high_frequency",1,2000,520,"Hz"],
+        ["low_frequency",1,1000,50,"Hz"],["start_threshold",0,100,6,""],
+        ["stop_threshold",0,100,4,""]]},
+      {name:"EventRateControl", params:[
+        ["enable",0,1,false,"bool"],["max_event_rate",1,100,20,"Mev/s"]]},
+      {name:"EventTrailFilter", params:[
+        ["enable",0,1,false,"bool"],["threshold",0,100,10,""],["type",0,0,"TRAIL","enum"]]},
+      {name:"ROI", params:[
+        ["enable",0,1,false,"bool"],["mode",0,0,"ROI","enum"],["x",0,1279,0,"px"],
+        ["y",0,719,0,"px"],["width",1,1280,1280,"px"],["height",1,720,720,"px"]]},
+      {name:"Sync", params:[["mode",0,0,"STANDALONE","enum"]]},
+      {name:"TriggerIn", params:[["enable",0,1,true,"bool"]]}
+    ];
+
+    const groups = document.getElementById("groups");
+    const state = document.getElementById("writeState");
+
+    function numericRow(parameter) {
+      const [name,min,max,value,unit] = parameter;
+      const wrapper=document.createElement("div");
+      wrapper.className="param";
+      wrapper.innerHTML=`<div class="param-line"><span class="param-name">${name}${unit ? ` (${unit})` : ""}</span>
+        <span class="stepper"><button class="minus">−</button><input class="number" type="number" min="${min}" max="${max}" value="${value}"><button class="plus">+</button></span></div>
+        <input class="range" type="range" min="${min}" max="${max}" value="${value}">`;
+      const number=wrapper.querySelector(".number");
+      const range=wrapper.querySelector(".range");
+      const update=valueToSet=>{
+        const legal=Math.min(max,Math.max(min,Number(valueToSet)));
+        number.value=legal; range.value=legal; state.textContent="已修改";
+      };
+      wrapper.querySelector(".minus").onclick=()=>update(Number(number.value)-1);
+      wrapper.querySelector(".plus").onclick=()=>update(Number(number.value)+1);
+      number.onchange=()=>update(number.value);
+      range.oninput=()=>update(range.value);
+      return wrapper;
+    }
+
+    function choiceRow(parameter) {
+      const [name,,,value,type] = parameter;
+      const wrapper=document.createElement("div");
+      wrapper.className="param";
+      const choices = name==="fliter_mode" ? ["Band cut","Low pass"] :
+        name==="mode" && value==="STANDALONE" ? ["STANDALONE","MASTER","SLAVE"] : [value];
+      if(type==="bool") {
+        wrapper.innerHTML=`<div class="param-line"><span class="param-name">${name}</span><button class="boolean">${value ? "启用" : "禁用"}</button></div>`;
+        const button=wrapper.querySelector("button");
+        button.onclick=()=>{button.textContent=button.textContent==="启用" ? "禁用" : "启用";state.textContent="已修改";};
+      } else {
+        wrapper.innerHTML=`<div class="param-line"><span class="param-name">${name}</span><select class="enum">${choices.map(item=>`<option>${item}</option>`).join("")}</select></div>`;
+        wrapper.querySelector("select").onchange=()=>state.textContent="已修改";
+      }
+      return wrapper;
+    }
+
+    parameterGroups.forEach((group,index)=>{
+      const section=document.createElement("section");
+      section.className=`group${index===0 ? " open" : ""}`;
+      const title=document.createElement("button");
+      title.className="group-title";
+      title.innerHTML=`<span>${group.name}</span><span class="count">${group.params.length}</span><span class="arrow">${index===0 ? "⌃" : "⌄"}</span>`;
+      const content=document.createElement("div");
+      content.className="group-content";
+      group.params.forEach(parameter=>content.appendChild(
+        ["bool","enum"].includes(parameter[4]) ? choiceRow(parameter) : numericRow(parameter)
+      ));
+      title.onclick=()=>{
+        const open=section.classList.toggle("open");
+        title.querySelector(".arrow").textContent=open ? "⌃" : "⌄";
+      };
+      section.append(title,content);
+      groups.appendChild(section);
+    });
+
+    const workspace=document.getElementById("workspace");
+    const drawer=document.getElementById("drawer");
+    const analysisButton=document.getElementById("analysisButton");
+    analysisButton.onclick=()=>{
+      const open=!drawer.classList.contains("open");
+      drawer.classList.toggle("open",open);
+      workspace.classList.toggle("analysis-on",open);
+      analysisButton.classList.toggle("active",open);
+    };
+    document.getElementById("closeDrawer").onclick=()=>{
+      drawer.classList.remove("open");
+      workspace.classList.remove("analysis-on");
+      analysisButton.classList.remove("active");
+    };
+
+    let running=true;
+    const runButton=document.getElementById("runButton");
+    const pauseButton=document.getElementById("pauseButton");
+    runButton.onclick=()=>{
+      running=!running;
+      runButton.textContent=running ? "停止运行" : "开始运行";
+      runButton.classList.toggle("active",!running);
+      pauseButton.textContent=running ? "Ⅱ" : "▶";
+    };
+
+    let tick=3147;
+    setInterval(()=>{
+      if(!running) return;
+      tick=(tick+37)%10000;
+      document.getElementById("timestamp").textContent=`00:21:00:${String(tick).padStart(4,"0")}`;
+    },100);
+  </script>
+</body>
+</html>

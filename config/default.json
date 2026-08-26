@@ -1,0 +1,92 @@
+{
+  "configVersion": 1,
+  "source": {
+    "mode": "live",
+    "resolution": [
+      720,
+      1280
+    ],
+    "windowUs": 1000,
+    "eventsPerWindow": 2500,
+    "live": {
+      "batchEvents": 2500
+    }
+  },
+  "paths": {
+    "runtimeRoot": "${PROJECT_ROOT}/runtime/bin",
+    "sdkRoot": "C:/Program Files (x86)/DvsenseDriver",
+    "mvsRoot": "C:/Program Files (x86)/MVS",
+    "mvsRuntimeRoot": "C:/Program Files (x86)/Common Files/MVS/Runtime/Win64_x64",
+    "fusionSdkRoot": "${PROJECT_ROOT}/vendor/dvsense-fusion-sdk",
+    "outputRoot": "${PROJECT_ROOT}/artifacts/output",
+    "calibrationFile": "${PROJECT_ROOT}/calibration/fusion_result.json",
+    "defaultParameterFile": "${PROJECT_ROOT}/config/dvsense_default_parameters.json"
+  },
+  "fusion": {
+    "rgbFps": 30,
+    "outputWidth": 1280,
+    "outputHeight": 720,
+    "calibrationEnabled": false,
+    "calibrationFile": "${PROJECT_ROOT}/calibration/fusion_result.json"
+  },
+  "camera": {
+    "product": "DVSLume",
+    "serial": "",
+    "connection": {
+      "warmupBatches": 5
+    },
+    "rgb": {
+      "serial": "",
+      "exposureUs": 2800
+    }
+  },
+  "roi": {
+    "enabled": false,
+    "mode": "software",
+    "rectangle": [
+      1,
+      1,
+      1280,
+      720
+    ]
+  },
+  "compute": {
+    "backend": "matlab-gpu",
+    "allowFallback": true,
+    "minimumGpuEvents": 10000,
+    "countClamp": 8
+  },
+  "processing": {
+    "activityFilterEnabled": true,
+    "minimumNeighborSupport": 1,
+    "recognitionWindowUs": 5000,
+    "recognitionMaxEvents": 25000,
+    "recognitionMinEvents": 20,
+    "temporalDecayUs": 2000,
+    "threshold": 0.8,
+    "minComponentThickness": 2,
+    "componentMergeGap": 10
+  },
+  "tracking": {
+    "processNoise": 30,
+    "measurementNoise": 8,
+    "initialCovariance": 100,
+    "minimumEvents": 20,
+    "trimFraction": 0.03
+  },
+  "runtime": {
+    "durationSeconds": "Inf",
+    "targetPeriodUs": 1000,
+    "warningLatencyUs": 2000
+  },
+  "display": {
+    "enabled": true,
+    "refreshHz": 25,
+    "accumulationUs": 5000,
+    "scale": 1.0
+  },
+  "recording": {
+    "enabled": false,
+    "saveTracking": true
+  }
+}
