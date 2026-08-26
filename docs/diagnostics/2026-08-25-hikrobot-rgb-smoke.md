@@ -3,7 +3,7 @@
 ## 环境
 
 - 相机：Hikrobot MV-CU050-90UC
-- 序列号：DA7653943
+- 序列号：`<redacted>`
 - 设备版本：V4.0.1 220914 887585
 - MATLAB：R2024b
 - 原生编译器：Visual Studio Community 2026，MSVC x64
@@ -29,7 +29,7 @@
 ```text
 device_count=1
 model=MV-CU050-90UC
-serial=DA7653943
+serial=<redacted>
 get_exposure_result=0x0 exposure_us=5000
 set_exposure_result=0x0
 exposure_readback_result=0x0 exposure_us=5000
@@ -46,9 +46,7 @@ result=PASS
 
 ## MATLAB MEX 与应用适配器结果
 
-初次构建时，MATLAB R2024b 未识别 Visual Studio 2026。并行安装 Visual
-Studio 2022 Build Tools 后，`mex -setup C++` 成功选择 Microsoft Visual C++
-2022，`tools/build/buildHikrobotMex.m` 随后成功生成：
+初次构建时，MATLAB R2024b 未识别 Visual Studio 2026。并行安装 Visual Studio 2022 Build Tools 后，`mex -setup C++` 成功选择 Microsoft Visual C++ 2022，`tools/build/buildHikrobotMex.m` 随后成功生成：
 
 ```text
 runtime/bin/hikrobot_mex.mexw64
@@ -56,11 +54,10 @@ runtime/bin/hikrobot_mex.mexw64
 
 通过 `camera.HikrobotCameraSource` 的 MATLAB 实机验证覆盖：
 
-- 枚举 1 台真实相机并取得正确型号和序列号；
+- 枚举 1 台真实相机并取得正确型号；
 - 打开设备并应用 JSON 配置中的 2800 µs 曝光；
 - 曝光同值写回成功；
 - 取得 720×1280×3 `uint8` RGB 预览帧；
 - 正常关闭设备。
 
-刚开始采集时，单次 5 ms MEX 读取可能在首帧到达前返回空数组。应用的
-25 Hz 显示循环会自然重试；正式验证使用最长 5 秒的有界重试确认帧到达。
+刚开始采集时，单次 5 ms MEX 读取可能在首帧到达前返回空数组。应用的 25 Hz 显示循环会自然重试；正式验证使用最长 5 秒的有界重试确认帧到达。
