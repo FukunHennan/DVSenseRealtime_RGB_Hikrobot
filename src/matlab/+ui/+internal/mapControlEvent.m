@@ -20,7 +20,7 @@ end
 switch type
     case {"start","stop","startRecording","stopRecording","showAnalysis", ...
             "hideAnalysis","setOverlayVisible","beginROISelection","clearROI", ...
-            "connectRgb","disconnectRgb"}
+            "connectRgb","disconnectRgb","resetRgbThreshold"}
         command = struct("type",char(type));
         if type == "setOverlayVisible"
             requireField(payload,"value");
@@ -29,10 +29,17 @@ switch type
     case "setRgbExposureUs"
         requireField(payload,"value");
         value = double(payload.value);
-        if ~isscalar(value) || ~isfinite(value) || value < 20 || value > 1000000
-            error("Hikrobot:Exposure","RGB曝光时间必须在20到1000000微秒之间。");
+        if ~isscalar(value) || ~isfinite(value) || value < 100 || value > 30000
+            error("Hikrobot:Exposure","RGB曝光时间必须在100到30000微秒之间。");
         end
-        command = struct("type","setRgbExposureUs","value",value);
+        command = struct("type","setRgbExposureUs","value",round(value/100)*100);
+    case "setRgbThreshold"
+        requireField(payload,"value");
+        value = double(payload.value);
+        if ~isscalar(value) || ~isfinite(value) || value < 0 || value > 255
+            error("DVSense:FusionThreshold","RGB亮度阈值必须在0到255之间。");
+        end
+        command = struct("type","setRgbThreshold","value",round(value));
     case "setDisplayAccumulationUs"
         requireField(payload,"value");
         value = double(payload.value);
