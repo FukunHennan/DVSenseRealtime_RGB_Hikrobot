@@ -26,6 +26,14 @@ CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 
+# Runtime / binary outputs
+*.dll
+*.exe
+*.so
+*.dylib
+runtime/bin/*
+!runtime/bin/.gitkeep
+
 # Generated project output
 artifacts/build/
 artifacts/output/
@@ -41,3 +49,11 @@ desktop.ini
 
 # Machine-local configuration
 config/local.json
+
+# Secrets / credentials
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
