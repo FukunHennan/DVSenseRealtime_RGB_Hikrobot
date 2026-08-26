@@ -10,6 +10,8 @@ classdef WorkbenchViewer < handle
         FrameSurface
         RgbFramePanel
         RgbFrameSurface
+        FusionFramePanel
+        FusionFrameSurface
         SettingsFigure
         SettingsHtml
         AnalysisFigure
@@ -107,6 +109,35 @@ classdef WorkbenchViewer < handle
             if ~obj.isRunning() || isempty(frame), return, end
             obj.RgbFrameSurface.update(frame,struct("valid",false));
             drawnow limitrate;
+        end
+
+        function setFusionState(obj,status,reason)
+            if ~obj.isRunning(), return, end
+            obj.LiveState.fusionStatus = char(string(status));
+            obj.LiveState.fusionReason = char(string(reason));
+            obj.LiveState.fusionReady = string(status) == "ready";
+            obj.refreshFrameGeometry();
+            obj.publishLive();
+        end
+
+        function updateFusion(obj,frame)
+            if ~obj.isRunning() || isempty(frame), return, end
+            obj.FusionFrameSurface.update(frame,struct("valid",false));
+            obj.LiveState.fusionReady = true;
+            obj.LiveState.fusionStatus = "ready";
+            obj.refreshFrameGeometry();
+            obj.publishLive();
+            drawnow limitrate;
+        end
+
+        function clearFusion(obj)
+            if ~obj.isRunning(), return, end
+            if ~isempty(obj.FusionFrameSurface)
+                try, obj.FusionFrameSurface.reset(); catch, end
+            end
+            obj.LiveState.fusionReady = false;
+            obj.refreshFrameGeometry();
+            obj.publishLive();
         end
 
         function serial = selectRgbCamera(obj,devices,preferredSerial)
@@ -338,6 +369,10 @@ classdef WorkbenchViewer < handle
                 "BackgroundColor",[10 15 20]/255,"Visible","off");
             obj.RgbFrameSurface = ui.internal.FrameSurface(obj.RgbFramePanel, ...
                 struct("resolution",[720 1280],"scale",1));
+            obj.FusionFramePanel = uipanel(obj.Figure,"BorderType","none", ...
+                "BackgroundColor",[10 15 20]/255,"Visible","off");
+            obj.FusionFrameSurface = ui.internal.FrameSurface(obj.FusionFramePanel, ...
+                struct("resolution",[720 1280],"scale",1));
             if isfield(cfg,"roi") && isfield(cfg.roi,"enabled") && ...
                     logical(cfg.roi.enabled)
                 obj.FrameSurface.setROI(cfg.roi.rectangle);
@@ -382,6 +417,9 @@ classdef WorkbenchViewer < handle
                 if ~isempty(obj.RgbFramePanel) && isvalid(obj.RgbFramePanel)
                     obj.RgbFramePanel.Visible = "off";
                 end
+                if ~isempty(obj.FusionFramePanel) && isvalid(obj.FusionFramePanel)
+                    obj.FusionFramePanel.Visible = "off";
+                end
                 return
             end
 
@@ -402,6 +440,7 @@ classdef WorkbenchViewer < handle
                 panelY = shellBottom;
                 panelWidth = max(200,(mainWidth-1)/2);
                 panelHeight = shellHeight;
+                fusionHeight = 0;
             else
                 topFraction = 1/(1+0.78);
                 topHeight = max(180,(shellHeight-1)*topFraction);
@@ -409,6 +448,7 @@ classdef WorkbenchViewer < handle
                 panelY = shellBottom + lowerHeight + 1;
                 panelWidth = max(200,(mainWidth-1)/2);
                 panelHeight = topHeight;
+                fusionHeight = lowerHeight;
             end
             obj.FramePanel.Position = [x panelY panelWidth panelHeight];
             obj.FramePanel.Visible = "on";
@@ -418,6 +458,18 @@ classdef WorkbenchViewer < handle
                     obj.RgbFramePanel.Visible = "on";
                 else
                     obj.RgbFramePanel.Visible = "off";
+                end
+            end
+            if ~isempty(obj.FusionFramePanel) && isvalid(obj.FusionFramePanel)
+                if obj.VideoLayout == "triple" && fusionHeight > 0
+                    obj.FusionFramePanel.Position = [x shellBottom mainWidth fusionHeight];
+                    if logical(localField(obj.LiveState,"fusionReady",false))
+                        obj.FusionFramePanel.Visible = "on";
+                    else
+                        obj.FusionFramePanel.Visible = "off";
+                    end
+                else
+                    obj.FusionFramePanel.Visible = "off";
                 end
             end
         end
@@ -570,7 +622,9 @@ classdef WorkbenchViewer < handle
                 "centerlinePointCount",0, ...
                 "rgbRunning",false,"rgbSerial","--","rgbModel","--", ...
                 "rgbConnection","● 未连接","rgbConnectionState","未连接", ...
-                "rgbExposureUs",NaN);
+                "rgbExposureUs",NaN, ...
+                "fusionReady",false,"fusionStatus","waiting-dvs", ...
+                "fusionReason","等待 DVS 与 RGB 最新显示帧。");
         end
 
         function state = initialAnalysisState(~)
