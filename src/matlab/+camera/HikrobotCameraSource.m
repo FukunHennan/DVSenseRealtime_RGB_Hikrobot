@@ -8,11 +8,15 @@ classdef HikrobotCameraSource < handle
     end
     properties (Access = private)
         OriginalPath string = ""
+        ReadTimeoutMs double = 20
+        PreviewWidth double = 1280
+        PreviewHeight double = 720
     end
 
     methods
         function obj = HikrobotCameraSource(cfg)
             obj.Config = cfg;
+            obj.configurePreview();
             obj.prepareRuntime();
         end
 
@@ -51,9 +55,22 @@ classdef HikrobotCameraSource < handle
             tf = obj.Opened;
         end
 
+        function tf = isConnected(obj)
+            tf = false;
+            if ~obj.Opened, return, end
+            try
+                info = hikrobot_mex("info");
+                tf = logical(info.connected);
+                obj.Info = info;
+            catch
+                tf = false;
+            end
+        end
+
         function frame = readDisplayFrame(obj)
             assert(obj.Opened,"RGB相机尚未连接。");
-            frame = hikrobot_mex("read",5,1280,720);
+            frame = hikrobot_mex("read",obj.ReadTimeoutMs, ...
+                obj.PreviewWidth,obj.PreviewHeight);
         end
 
         function current = setExposureUs(obj,value)
@@ -69,7 +86,11 @@ classdef HikrobotCameraSource < handle
         function info = getInfo(obj)
             info = obj.Info;
             if obj.Opened
-                try, info = hikrobot_mex("info"); catch, end
+                try
+                    info = hikrobot_mex("info");
+                    obj.Info = info;
+                catch
+                end
             end
         end
 
@@ -80,6 +101,7 @@ classdef HikrobotCameraSource < handle
             obj.Opened = false;
             obj.SelectedSerial = "";
             obj.Info = struct();
+            obj.ExposureUs = NaN;
         end
 
         function delete(obj)
@@ -91,6 +113,22 @@ classdef HikrobotCameraSource < handle
     end
 
     methods (Access = private)
+        function configurePreview(obj)
+            if ~isfield(obj.Config,"camera") || ~isfield(obj.Config.camera,"rgb")
+                return
+            end
+            rgb = obj.Config.camera.rgb;
+            if isfield(rgb,"readTimeoutMs") && isfinite(double(rgb.readTimeoutMs))
+                obj.ReadTimeoutMs = max(1,min(1000,round(double(rgb.readTimeoutMs))));
+            end
+            if isfield(rgb,"previewWidth") && isfinite(double(rgb.previewWidth))
+                obj.PreviewWidth = max(1,round(double(rgb.previewWidth)));
+            end
+            if isfield(rgb,"previewHeight") && isfinite(double(rgb.previewHeight))
+                obj.PreviewHeight = max(1,round(double(rgb.previewHeight)));
+            end
+        end
+
         function prepareRuntime(obj)
             obj.OriginalPath = string(getenv("PATH"));
             runtimeRoot = "C:\Program Files (x86)\Common Files\MVS\Runtime\Win64_x64";
@@ -109,9 +147,13 @@ classdef HikrobotCameraSource < handle
 
         function requireMex(obj)
             if exist("hikrobot_mex","file") ~= 3
+                mvsRoot = "<未配置>";
+                if isfield(obj.Config,"paths") && isfield(obj.Config.paths,"mvsRoot")
+                    mvsRoot = string(obj.Config.paths.mvsRoot);
+                end
                 error("Hikrobot:MexMissing", ...
                     "未找到hikrobot_mex。请先运行 tools/build/buildHikrobotMex.m。MVS根目录：%s", ...
-                    string(obj.Config.paths.mvsRoot));
+                    mvsRoot);
             end
         end
 
