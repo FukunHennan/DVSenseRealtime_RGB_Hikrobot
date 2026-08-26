@@ -30,6 +30,9 @@ classdef LiveViewer < handle
         function setRgbRunningState(obj,varargin), obj.Adapter.setRgbRunningState(varargin{:}); end
         function setRgbExposureState(obj,varargin), obj.Adapter.setRgbExposureState(varargin{:}); end
         function updateRgb(obj,varargin), obj.Adapter.updateRgb(varargin{:}); end
+        function setFusionState(obj,varargin), obj.Adapter.setFusionState(varargin{:}); end
+        function updateFusion(obj,varargin), obj.Adapter.updateFusion(varargin{:}); end
+        function clearFusion(obj,varargin), obj.Adapter.clearFusion(varargin{:}); end
         function varargout = selectRgbCamera(obj,varargin)
             [varargout{1:nargout}] = obj.Adapter.selectRgbCamera(varargin{:});
         end
