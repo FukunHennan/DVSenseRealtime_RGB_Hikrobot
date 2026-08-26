@@ -2,15 +2,10 @@
   "configVersion": 1,
   "source": {
     "mode": "live",
-    "resolution": [
-      720,
-      1280
-    ],
+    "resolution": [720, 1280],
     "windowUs": 1000,
     "eventsPerWindow": 2500,
-    "live": {
-      "batchEvents": 2500
-    }
+    "live": {"batchEvents": 2500}
   },
   "paths": {
     "runtimeRoot": "${PROJECT_ROOT}/runtime/bin",
@@ -27,14 +22,13 @@
     "outputWidth": 1280,
     "outputHeight": 720,
     "calibrationEnabled": false,
-    "calibrationFile": "${PROJECT_ROOT}/calibration/fusion_result.json"
+    "calibrationFile": "${PROJECT_ROOT}/calibration/fusion_result.json",
+    "rgbThreshold": 0
   },
   "camera": {
     "product": "DVSLume",
     "serial": "",
-    "connection": {
-      "warmupBatches": 5
-    },
+    "connection": {"warmupBatches": 5},
     "rgb": {
       "serial": "",
       "exposureUs": 2800
@@ -43,12 +37,7 @@
   "roi": {
     "enabled": false,
     "mode": "software",
-    "rectangle": [
-      1,
-      1,
-      1280,
-      720
-    ]
+    "rectangle": [1, 1, 1280, 720]
   },
   "compute": {
     "backend": "matlab-gpu",
