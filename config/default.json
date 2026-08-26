@@ -37,7 +37,11 @@
     },
     "rgb": {
       "serial": "",
-      "exposureUs": 2800
+      "exposureUs": 2800,
+      "previewFps": 25,
+      "previewWidth": 1280,
+      "previewHeight": 720,
+      "readTimeoutMs": 20
     }
   },
   "roi": {
